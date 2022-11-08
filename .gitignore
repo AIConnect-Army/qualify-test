@@ -6,6 +6,7 @@
 # website: http://jupyter.org/
 
 data/
+**/.DS_Store
 
 **pkl
 .ipynb_checkpoints
