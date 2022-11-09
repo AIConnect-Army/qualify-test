@@ -7,6 +7,7 @@ import numpy as np
 import random, os, sys, torch, cv2, warnings
 from glob import glob
 from torch.utils.data import DataLoader
+from multiprocessing import Manager
 
 prj_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(prj_dir)
@@ -54,10 +55,15 @@ if __name__ == '__main__':
     test_dirs = os.path.join(prj_dir, 'data', 'test')
     test_img_paths = glob(os.path.join(test_dirs, 'x', '*.png'))
 
+    # Image Caching
+    manager = Manager()
+    test_cache = manager.dict()
+
     #! Load data & create dataset for train 
     test_dataset = SegDataset(paths=test_img_paths,
                             input_size=[train_config['input_width'], train_config['input_height']],
                             scaler=get_image_scaler(train_config['scaler']),
+                            cache=test_cache,
                             mode='test',
                             logger=logger)
 

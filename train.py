@@ -7,6 +7,7 @@ import shutil, random, os, sys, torch
 from glob import glob
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
+from multiprocessing import Manager
 
 prj_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(prj_dir)
@@ -41,8 +42,12 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
 
     # Set device(GPU/CPU)
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(config['gpu_num'])
+
+    # delete below code if you on colab
+    # os.environ['CUDA_VISIBLE_DEVICES'] = str(config['gpu_num'])
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"DEVICE : {device}")
 
     # Create train result directory and set logger
     train_result_dir = os.path.join(prj_dir, 'results', 'train', train_folder)
@@ -66,13 +71,20 @@ if __name__ == '__main__':
     train_img_paths = glob(os.path.join(train_dirs, 'x', '*.png'))
     train_img_paths, val_img_paths = train_test_split(train_img_paths, test_size=config['val_size'], random_state=config['seed'], shuffle=True)
 
+    #img caching
+    manager = Manager()
+    train_cache = manager.dict()
+    valid_cache = manager.dict()
+
     train_dataset = SegDataset(paths=train_img_paths,
                             input_size=[config['input_width'], config['input_height']],
                             scaler=get_image_scaler(config['scaler']),
+                            cache=train_cache,
                             logger=logger)
     val_dataset = SegDataset(paths=val_img_paths,
                             input_size=[config['input_width'], config['input_height']],
                             scaler=get_image_scaler(config['scaler']),
+                            cache=valid_cache,
                             logger=logger)
     # Create data loader
     train_dataloader = DataLoader(dataset=train_dataset,
