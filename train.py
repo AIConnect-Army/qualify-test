@@ -29,9 +29,8 @@ if __name__ == '__main__':
     config_path = os.path.join(prj_dir, 'config', 'train.yaml')
     config = load_yaml(config_path)
     
-    # Set train serial: ex) 20211004
-    train_serial = datetime.now().strftime("%Y%m%d_%H%M%S")
-    train_serial = 'debug' if config['debug'] else train_serial
+    # Set train folder name : Model + Backbone
+    train_folder = config["train_folder"] 
 
     # Set random seed, deterministic
     torch.cuda.manual_seed(config['seed'])
@@ -46,7 +45,7 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Create train result directory and set logger
-    train_result_dir = os.path.join(prj_dir, 'results', 'train', train_serial)
+    train_result_dir = os.path.join(prj_dir, 'results', 'train', train_folder)
     os.makedirs(train_result_dir, exist_ok=True)
 
     # Set logger
@@ -76,12 +75,14 @@ if __name__ == '__main__':
     train_dataloader = DataLoader(dataset=train_dataset,
                                 batch_size=config['batch_size'],
                                 num_workers=config['num_workers'], 
+                                pin_memory=True,
                                 shuffle=config['shuffle'],
                                 drop_last=config['drop_last'])
                                 
     val_dataloader = DataLoader(dataset=val_dataset,
                                 batch_size=config['batch_size'],
                                 num_workers=config['num_workers'], 
+                                pin_memory=True,
                                 shuffle=False,
                                 drop_last=config['drop_last'])
 

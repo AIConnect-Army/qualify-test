@@ -1,11 +1,12 @@
 # System
-gpu_num: 0
+gpu_num: 1
 seed: 42
 debug: False
 verbose: False
 
 # Train / val
 val_size: 0.2
+train_folder : UAnet-efficient
 
 # Data Loader
 input_width: 480
@@ -21,7 +22,7 @@ encoder: timm-efficientnet-b0 #timm-regnety_016
 encoder_weight: noisy-student #imagenet
 depth: 5
 n_classes: 4
-activation: null
+activation: sigmoid 
 
 # Trainer
 n_epochs: 100

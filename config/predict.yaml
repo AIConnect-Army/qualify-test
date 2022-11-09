@@ -2,7 +2,7 @@
 gpu_num: 0
 
 # Model
-train_serial: '20221025_145511' # ex) '20221012_174254'
+train_folder : UAnet-efficient
 
 # Data
 batch_size: 16
