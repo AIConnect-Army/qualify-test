@@ -21,10 +21,10 @@ if __name__ == '__main__':
 
     #! Load config
     config = load_yaml(os.path.join(prj_dir, 'config', 'predict.yaml'))
-    train_config = load_yaml(os.path.join(prj_dir, 'results', 'train', config['train_serial'], 'train.yaml'))
+    train_config = load_yaml(os.path.join(prj_dir, 'results', 'train', config['train_folder'], 'train.yaml'))
     
-    #! Set predict serial
-    pred_serial = config['train_serial'] + '_' + datetime.now().strftime("%Y%m%d_%H%M%S")
+    #! Set predict folder name 
+    pred_folder = config['train_folder']
 
     # Set random seed, deterministic
     torch.cuda.manual_seed(train_config['seed'])
@@ -39,8 +39,8 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # Create train result directory and set logger
-    pred_result_dir = os.path.join(prj_dir, 'results', 'pred', pred_serial)
-    pred_result_dir_mask = os.path.join(prj_dir, 'results', 'pred', pred_serial, 'mask')
+    pred_result_dir = os.path.join(prj_dir, 'results', 'pred', pred_folder)
+    pred_result_dir_mask = os.path.join(prj_dir, 'results', 'pred', pred_folder, 'mask')
     os.makedirs(pred_result_dir, exist_ok=True)
     os.makedirs(pred_result_dir_mask, exist_ok=True)
 
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     logger.info(f"Load model architecture: {train_config['architecture']}")
 
     #! Load weight
-    check_point_path = os.path.join(prj_dir, 'results', 'train', config['train_serial'], 'model.pt')
+    check_point_path = os.path.join(prj_dir, 'results', 'train', config['train_folder'], 'model.pt')
     check_point = torch.load(check_point_path)
     model.load_state_dict(check_point['model'])
     logger.info(f"Load model weight, {check_point_path}")

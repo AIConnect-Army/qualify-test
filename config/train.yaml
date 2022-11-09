@@ -6,7 +6,7 @@ verbose: False
 
 # Train / val
 val_size: 0.2
-train_folder : UAnet-efficient
+train_folder : UAnet-eff_b0
 
 # Data Loader
 input_width: 480
@@ -18,17 +18,17 @@ drop_last: False
 
 # Model
 architecture: Unet
-encoder: timm-efficientnet-b0 #timm-regnety_016
-encoder_weight: noisy-student #imagenet
+encoder: efficientnet-b0 #timm-regnety_016
+encoder_weight: imagenet
 depth: 5
 n_classes: 4
 activation: sigmoid 
 
 # Trainer
-n_epochs: 100
+n_epochs: 3
 batch_size: 16
 loss: 
-  name: MeanCCELoss # MeanCCELoss
+  name: GDLoss # MeanCCELoss
   args:
     weight: [1, 1, 1, 1]
 metrics: 

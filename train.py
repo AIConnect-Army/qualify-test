@@ -56,7 +56,10 @@ if __name__ == '__main__':
 
 
     # Set data directory
-    train_dirs = os.path.join(prj_dir, 'data', 'train')
+    # train_dirs = os.path.join(prj_dir, 'data', 'train')
+
+    # For Test - sample data
+    train_dirs = os.path.join(prj_dir, 'data', 'sample_data')
 
     # Load data and create dataset for train 
     # Load image scaler
@@ -144,7 +147,7 @@ if __name__ == '__main__':
         # Initiate result row
         row = dict()
         row['epoch_id'] = epoch_id
-        row['train_serial'] = train_serial
+        row['train_folder'] = train_folder
         row['lr'] = trainer.scheduler.get_last_lr()
 
         # Train
