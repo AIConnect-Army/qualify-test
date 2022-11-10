@@ -114,6 +114,7 @@ if __name__ == '__main__':
                                 drop_last=config['drop_last'])
 
     logger.info(f"Load dataset, train: {len(train_dataset)}, val: {len(val_dataset)}")
+    print(f"Load dataset, train: {len(train_dataset)}, val: {len(val_dataset)}")
     
     # Load model
     model = get_model(model_str=config['architecture'])
