@@ -15,7 +15,7 @@ sys.path.append(prj_dir)
 from modules.utils import load_yaml, save_yaml, get_logger
 from modules.scalers import get_image_scaler
 from modules.datasets import SegDataset
-from models.utils import get_model
+from models.utils import get_swin_model
 warnings.filterwarnings('ignore')
 
 if __name__ == '__main__':
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     logger.info(f"Load test dataset: {len(test_dataset)}")
 
     # Load architecture
-    model = get_model(model_str=train_config['architecture'], config=train_config).to(device)
+    model = get_swin_model(config=train_config).to(device)
     logger.info(f"Load model architecture: {train_config['architecture']}")
 
     #! Load weight

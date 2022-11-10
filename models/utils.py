@@ -23,7 +23,21 @@ def register_encoder():
     }
 }
 
-def get_model(model_str: str, config):
+def get_swin_model(config):
+    register_encoder()
+
+    model = smp.PAN(
+            encoder_name="swin_encoder",
+            encoder_weights=config['encoder_weight'],
+            encoder_output_stride=32,
+            in_channels=3,
+            classes=config['n_classes']
+    )
+
+    return model
+	
+
+def get_model(model_str: str):
     """모델 클래스 변수 설정
     Args:
         model_str (str): 모델 클래스명
@@ -54,15 +68,3 @@ def get_model(model_str: str, config):
     elif model_str == 'PSPNet':
         return smp.PSPNet
     
-    elif model_str == 'Swin':
-        register_encoder()
-
-        model = smp.PAN(
-                encoder_name="swin_encoder",
-                encoder_weights=config['encoder_weight'],
-                encoder_output_stride=32,
-                in_channels=3,
-                classes=config['n_classes']
-            )
-	
-        return model

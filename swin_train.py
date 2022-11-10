@@ -22,7 +22,7 @@ from modules.scalers import get_image_scaler
 from modules.datasets import SegDataset
 from modules.recorders import Recorder
 from modules.trainer import Trainer
-from models.utils import get_model
+from models.utils import get_swin_model
 
 if __name__ == '__main__':
     
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     logger.info(f"Load dataset, train: {len(train_dataset)}, val: {len(val_dataset)}")
     
     # Load model
-    model = get_model(model_str=config['architecture'], config=config).to(device)
+    model = get_swin_model(config=config).to(device)
     logger.info(f"Load model architecture: {config['architecture']}")
 
     # Set optimizer
