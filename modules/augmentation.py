@@ -60,8 +60,10 @@ class DataAugmentation:
 
         if not self.img_size_dynamic:
             if imgs[0][0].size != (self.img_size, self.img_size):
-                imgs = [[TF.resize(img1, [self.img_size, self.img_size], interpolation=3),
-                         TF.resize(img2, [self.img_size, self.img_size], interpolation=3)]
+                imgs = [[TF.resize(img1, [self.img_size, self.img_size],
+                        interpolation=TF.InterpolationMode.BICUBIC),
+                         TF.resize(img2, [self.img_size, self.img_size],
+                         interpolation=TF.InterpolationMode.BICUBIC)]
                         for [img1, img2] in imgs]
         else:
             self.img_size = imgs[0][0].size[0]
@@ -70,9 +72,13 @@ class DataAugmentation:
 
         if len(labels) != 0:
             if labels[0][0].size != (self.img_size, self.img_size):
-                labels = [[TF.resize(img1, [self.img_size, self.img_size], interpolation=0),
-                           TF.resize(img2, [self.img_size, self.img_size], interpolation=0)]
-                          for [img1, img2] in labels]
+                labels = [[
+                    TF.resize(img1, [self.img_size, self.img_size], 
+                        interpolation=TF.InterpolationMode.NEAREST
+                    ),
+                    TF.resize(img2, [self.img_size, self.img_size], 
+                        interpolation=TF.InterpolationMode.NEAREST)]
+                    for [img1, img2] in labels]
 
         random_base = 0.5
         if self.with_random_hflip and random.random() > 0.5:
@@ -158,8 +164,6 @@ class DataAugmentation:
                        torch.from_numpy(np.array(img2, np.uint8)).unsqueeze(dim=0)]
                       for [img1, img2] in labels]
 
-            # imgs = [TF.normalize(img, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-            #         for img in imgs]
 
         imgs = [torch.cat([img1, img2], dim=2) for [img1, img2] in imgs]
         labels = [torch.cat([img1, img2], dim=2) for [img1, img2] in labels]
@@ -221,46 +225,3 @@ def pil_resize(img, size, order):
     elif order == 0:
         resample = Image.NEAREST
     return img.resize(size[::-1], resample)
-
-if __name__ == '__main__':
-    dataaug = DataAugmentation(img_size=754,
-            with_random_hflip=False,  # Horizontally flip
-            with_random_vflip=False,  # Vertically flip
-            with_random_rot=True,  # rotation
-            with_random_crop=True,  # transforms.RandomResizedCrop
-            with_scale_random_crop=False,  # rescale & crop
-            with_random_blur=False,  # GaussianBlur
-            random_color_tf=True)  # colorjitter
-
-    image = Image.open("*** image path ***")
-    label = Image.open('*** label path ***')
-
-    image = np.asarray(np.expand_dims(image, axis=0))
-    label = np.asarray(np.expand_dims(label, axis=0)).transpose(1, 2, 0)
-    label = np.asarray(np.expand_dims(label, axis=0))
-
-    # Augment an image
-    trans_imgs, trans_labels = dataaug.transform(image, label)
-    trans_img = trans_imgs[0].permute(1,2,0)
-    trans_label = trans_labels[0].permute(1,2,0)
-
-    # visualize
-    f, ax = plt.subplots(2, 2)
-
-    ax[0, 0].axis('off')
-    ax[0, 1].axis('off')
-    ax[1, 0].axis('off')
-    ax[1, 1].axis('off')
-
-    ax[0,0].set_title('original image')
-    ax[0,1].set_title('original label')
-    ax[1,0].set_title('transformed image')
-    ax[1,1].set_title('transformed label')
-
-    ax[0, 0].imshow(image[0])
-    ax[0, 1].imshow(label[0])
-    ax[1, 0].imshow(trans_img)
-    ax[1, 1].imshow(trans_label)
-
-    plt.show()
-
