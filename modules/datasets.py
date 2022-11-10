@@ -68,6 +68,7 @@ class SegDataset(Dataset):
             else:
                 x = np.transpose(x, (2, 0, 1))
 
+            x = self.scaler(x)
             return x, y, filename
 
         elif self.mode in ['test']:
