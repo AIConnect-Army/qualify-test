@@ -23,8 +23,7 @@ from modules.datasets import SegDataset
 from modules.recorders import Recorder
 from modules.trainer import Trainer
 from models.utils import get_model
-
-from augmentation import DataAugmentation
+from modules.augmentation import DataAugmentation
 
 if __name__ == '__main__':
     
