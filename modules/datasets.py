@@ -51,24 +51,25 @@ class SegDataset(Dataset):
             # x = self.scaler(x)
             # x = np.transpose(x, (2, 0, 1))
 
-            self.cache[self.x_paths[id_]] = {"data":x, "size":orig_size}
-
         if self.mode in ['train', 'valid']:
             y = self.cache.get(self.y_paths[id_], None)
 
             if y is None:
                 y = cv2.imread(self.y_paths[id_], cv2.IMREAD_GRAYSCALE)
                 y = cv2.resize(y, self.input_size, interpolation=cv2.INTER_NEAREST)
+
+                if self.transform:
+                    x, y = np.expand_dims(x, axis=0), np.expand_dims(y, axis=0).transpose(1, 2, 0)
+                    x, y = self.transform.transform(x, np.expand_dims(y, axis=0))
+                    x, y = x[0], y[0][0]
+                else:
+                    x = np.transpose(x, (2, 0, 1))
+
+                x = self.scaler(x)
+
+                self.cache[self.x_paths[id_]] = {"data":x, "size":orig_size}
                 self.cache[self.y_paths[id_]] = y
 
-            if self.transform:
-                x, y = np.expand_dims(x, axis=0), np.expand_dims(y, axis=0).transpose(1, 2, 0)
-                x, y = self.transform.transform(x, np.expand_dims(y, axis=0))
-                x, y = x[0], y[0][0]
-            else:
-                x = np.transpose(x, (2, 0, 1))
-
-            x = self.scaler(x)
             return x, y, filename
 
         elif self.mode in ['test']:
@@ -78,4 +79,3 @@ class SegDataset(Dataset):
 
         else:
             assert False, f"Invalid mode : {self.mode}"
-
