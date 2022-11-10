@@ -24,6 +24,8 @@ from modules.recorders import Recorder
 from modules.trainer import Trainer
 from models.utils import get_model
 
+from augmentation import DataAugmentation
+
 if __name__ == '__main__':
     
     # Load config
@@ -71,6 +73,16 @@ if __name__ == '__main__':
     train_img_paths = glob(os.path.join(train_dirs, 'x', '*.png'))
     train_img_paths, val_img_paths = train_test_split(train_img_paths, test_size=config['val_size'], random_state=config['seed'], shuffle=True)
 
+    # data augmentation
+    aug = DataAugmentation(img_size=config['input_height'],
+                           with_random_hflip=True,
+                           with_random_vflip=False,
+                           with_random_rot=True,
+                           with_random_crop=False,
+                           with_scale_random_crop=True,
+                           with_random_blur=False,
+                           random_color_tf=True)
+
     #img caching
     manager = Manager()
     train_cache = manager.dict()
@@ -80,6 +92,7 @@ if __name__ == '__main__':
                             input_size=[config['input_width'], config['input_height']],
                             scaler=get_image_scaler(config['scaler']),
                             cache=train_cache,
+                            transform=aug,
                             logger=logger)
     val_dataset = SegDataset(paths=val_img_paths,
                             input_size=[config['input_width'], config['input_height']],
