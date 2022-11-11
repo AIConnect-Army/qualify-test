@@ -16,6 +16,7 @@ num_workers: 8
 shuffle: True
 drop_last: False
 
+
 # Model
 architecture: Swin 
 encoder: efficientnet-b0 #timm-regnety_016

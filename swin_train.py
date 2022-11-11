@@ -1,6 +1,5 @@
 """Train
 """
-from datetime import datetime
 from time import time
 import numpy as np
 import shutil, random, os, sys, torch
@@ -23,7 +22,7 @@ from modules.datasets import SegDataset
 from modules.recorders import Recorder
 from modules.trainer import Trainer
 from models.utils import get_swin_model
-from modules.augmentation import DataAugmentation
+# from modules.augmentation import DataAugmentation
 
 if __name__ == '__main__':
     
@@ -62,10 +61,10 @@ if __name__ == '__main__':
 
 
     # Set data directory
-    # train_dirs = os.path.join(prj_dir, 'data', 'train')
+    train_dirs = os.path.join(prj_dir, 'data', 'train')
 
     # For Test - sample data
-    train_dirs = os.path.join(prj_dir, 'data', 'sample_data')
+    # train_dirs = os.path.join(prj_dir, 'data', 'sample_data')
 
     # Load data and create dataset for train 
     # Load image scaler
@@ -77,27 +76,24 @@ if __name__ == '__main__':
     train_cache = manager.dict()
     valid_cache = manager.dict()
 
-    # data augmentation
-    aug = DataAugmentation(img_size=config['input_height'],
-                           with_random_hflip=True,
-                           with_random_vflip=False,
-                           with_random_rot=True,
-                           with_random_crop=False,
-                           with_scale_random_crop=True,
-                           with_random_blur=False,
-                           random_color_tf=True)
-
+    # upsampling data
+    upsampling_dir = os.path.join(prj_dir, 'data', 'up')
+    upsampling_dir_x = os.path.join(upsampling_dir, 'x')
+    
+    train_img_paths += glob(os.path.join(upsampling_dir_x, '*.png'))
     train_dataset = SegDataset(paths=train_img_paths,
                             input_size=[config['input_width'], config['input_height']],
                             scaler=get_image_scaler(config['scaler']),
                             cache=train_cache,
-                            transform=aug,
+                            # upsampling=config['upsampling']['flag'],
+                            # transform=aug,
                             logger=logger)
     val_dataset = SegDataset(paths=val_img_paths,
                             input_size=[config['input_width'], config['input_height']],
                             scaler=get_image_scaler(config['scaler']),
                             cache=valid_cache,
-                            transform=aug,
+                            # upsampling=config['upsampling']['flag'],
+                            # transform=None,
                             logger=logger)
 
     # Create data loader
