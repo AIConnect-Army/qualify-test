@@ -99,9 +99,6 @@ def cutmix(img1, img2, bbox1, label1, label2, label_info, save_path, filename):
     h, w, c = img1.shape
     patch_l = h // 4
 
-    # origin2 = img2.copy()
-    # origin2_label = label2.copy()
-
     index = []
     for i in range(4):
         for j in range(4):
@@ -117,7 +114,6 @@ def cutmix(img1, img2, bbox1, label1, label2, label_info, save_path, filename):
 
         if label2[tl_x:br_x, tl_y:br_y].sum() == 0:  # 붙이는 곳이 백그라운드일때
                 rand_tlx, rand_tly, rand_brx, rand_bry, _ = bbox1[-1]
-                # rand_tlx, rand_tly, rand_brx, rand_bry = random.choice(bbox1)  # label1에서 가져올 bbox
                 rand_cx, rand_cy = (rand_tlx+rand_brx)//2, (rand_tly+rand_bry)//2
 
                 label_tlx, label_tly, label_brx, label_bry = rand_cx-half_patch_l, rand_cy-half_patch_l, rand_cx+half_patch_l, rand_cy+half_patch_l
@@ -162,31 +158,6 @@ def cutmix(img1, img2, bbox1, label1, label2, label_info, save_path, filename):
                 # save
                 cv2.imwrite(os.path.join(save_path, 'x', filename), img2)
                 cv2.imwrite(os.path.join(save_path, 'y', filename), label2)
-
-                # visualize
-                # f, ax = plt.subplots(3, 2, figsize=(15, 15))
-                #
-                # ax[0, 0].axis('off')
-                # ax[0, 1].axis('off')
-                # ax[1, 0].axis('off')
-                # ax[1, 1].axis('off')
-                # ax[2, 0].axis('off')
-                # ax[2, 1].axis('off')
-                #
-                # ax[0, 0].set_title('image1')
-                # ax[0, 1].set_title('label1')
-                # ax[1, 0].set_title('image2')
-                # ax[1, 1].set_title('label2')
-                # ax[2, 0].set_title('cutmix image')
-                # ax[2, 1].set_title('cutmix label')
-                #
-                # ax[0, 0].imshow(img1)
-                # ax[0, 1].imshow(label1)
-                # ax[1, 0].imshow(origin2)
-                # ax[1, 1].imshow(origin2_label)
-                # ax[2, 0].imshow(img2)
-                # ax[2, 1].imshow(label2)
-                # plt.show()
                 return
     return
 
@@ -247,9 +218,6 @@ if __name__ == '__main__':
             diff += 1
             continue
 
-        # img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-        # img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
-
         label1 = cv2.imread(y1_path, cv2.IMREAD_GRAYSCALE)
         label2 = cv2.imread(y2_path, cv2.IMREAD_GRAYSCALE)
 
@@ -260,7 +228,7 @@ if __name__ == '__main__':
             continue
 
         # save 경로
-        save_path = f'C:/Users/dudtj/contest/qualify-test/data/cutmix'
+        save_path = f'../data/cut'
         # filename = f'y1_{ith}_{os.path.basename(y2_path)}'
         filename = f'y2_{ith}_{os.path.basename(y2_path)}'
         print(f'filename: {filename}')

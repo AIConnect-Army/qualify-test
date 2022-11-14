@@ -46,12 +46,6 @@ plt.bar(x, y)
 plt.xlabel('class')
 plt.ylabel('count')
 
-# for i, v in enumerate(x):
-#     plt.text(v, y[i], y[i],                 # 좌표 (x축 = v, y축 = y[0]..y[1], 표시 = y[0]..y[1])
-#              fontsize = 9,
-#              color='blue',
-#              horizontalalignment='center',  # horizontalalignment (left, center, right)
-#              verticalalignment='bottom')
 
 plt.show()
 

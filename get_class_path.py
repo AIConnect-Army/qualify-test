@@ -5,7 +5,6 @@ import numpy as np
 import csv
 
 
-
 # 클래스 별로 데이터 경로 csv 파일로 저장
 prj_dir = os.path.dirname(os.path.abspath(__file__))
 train_dirs = os.path.join(prj_dir, 'data', 'train')
