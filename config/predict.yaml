@@ -10,3 +10,6 @@ num_workers: 4
 
 # Logging
 verbose: false
+
+# Ensemble
+ensemble : false
