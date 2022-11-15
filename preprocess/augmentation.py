@@ -1,15 +1,20 @@
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import random
 import numpy as np
 import random, shutil, os
-import cv2
-
+import os
+import random
+import numpy as np
+import random
+import csv
 from PIL import Image
 from PIL import ImageFilter
-
 import torchvision.transforms.functional as TF
 from torchvision import transforms
 import torch
+import torchvision.transforms as T
+import matplotlib.pyplot as plt
+import cv2
 
 
 def to_tensor_and_norm(imgs, labels):
@@ -226,3 +231,51 @@ def pil_resize(img, size, order):
     elif order == 0:
         resample = Image.NEAREST
     return img.resize(size[::-1], resample)
+
+prj_dir = os.path.dirname(os.path.abspath(__file__))
+
+if __name__ == '__main__':
+    dataaug = DataAugmentation(img_size=754,
+            with_random_hflip=True,  # Horizontally flip
+            with_random_vflip=True,  # Vertically flip
+            with_random_rot=True,  # rotation
+            with_random_crop=False,  # transforms.RandomResizedCrop
+            with_scale_random_crop=False,  # rescale & crop
+            with_random_blur=True,  # GaussianBlur
+            random_color_tf=True)  # colorjitter
+
+    x_paths = []
+    with open(os.path.join(prj_dir, 'class1.csv'), newline='') as f:  # cls 라벨 정보
+        reader = csv.reader(f)
+        for r in reader:
+            x_paths.append(os.path.join(prj_dir, '..', 'data','train','x', r[0]))  # 원본 데이터 경로
+
+    with open(os.path.join(prj_dir, 'class2.csv'), newline='') as f:
+        reader = csv.reader(f)
+        for r in reader:
+            x_paths.append(os.path.join(prj_dir, '..', 'data','train','x', r[0]))
+
+    x_paths = list(set(x_paths))
+    print(f"Upsampling data length : {len(x_paths)}")
+
+    save_path = os.path.join(prj_dir, '..', 'data', 'up')
+    os.makedirs(save_path, exist_ok=True)
+    os.makedirs(os.path.join(save_path, 'x'), exist_ok=True)
+    os.makedirs(os.path.join(save_path, 'y'), exist_ok=True)
+
+    for x in x_paths:
+        image = Image.open(x)
+        label = Image.open(x.replace('x', 'y'))
+
+        image = np.asarray(np.expand_dims(image, axis=0))
+        label = np.asarray(np.expand_dims(label, axis=0)).transpose(1, 2, 0)
+        label = np.asarray(np.expand_dims(label, axis=0))
+
+        # Augment an image
+        transform = T.ToPILImage()
+        trans_imgs, trans_labels = dataaug.transform(image, label)
+        x_img = transform(trans_imgs[0])
+        y_img = transform(trans_labels[0])
+
+        x_img.save(os.path.join(save_path, 'x', os.path.basename(x)))
+        y_img.save(os.path.join(save_path, 'y', os.path.basename(x.replace('x', 'y'))))

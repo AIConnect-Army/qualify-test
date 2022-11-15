@@ -4,11 +4,10 @@ import random
 import numpy as np
 import random
 import cv2
-import matplotlib.pyplot as plt
 from collections import deque
-from PIL import Image
 import csv
 
+prj_dir = os.path.dirname(os.path.abspath(__file__))
 
 def dfs(cls, pt, visited, img, bbox):
     dir = [[0, 1], [0, -1], [1, 0], [-1, 0]]  # 상,하,좌,우로 살펴봄
@@ -99,8 +98,6 @@ def cutmix(img1, img2, bbox1, label1, label2, label_info, save_path, filename):
     h, w, c = img1.shape
     patch_l = h // 4
 
-    # origin2 = img2.copy()
-    # origin2_label = label2.copy()
 
     index = []
     for i in range(4):
@@ -116,114 +113,70 @@ def cutmix(img1, img2, bbox1, label1, label2, label_info, save_path, filename):
         half_patch_l = patch_l // 2
 
         if label2[tl_x:br_x, tl_y:br_y].sum() == 0:  # 붙이는 곳이 백그라운드일때
-                rand_tlx, rand_tly, rand_brx, rand_bry, _ = bbox1[-1]
-                # rand_tlx, rand_tly, rand_brx, rand_bry = random.choice(bbox1)  # label1에서 가져올 bbox
-                rand_cx, rand_cy = (rand_tlx+rand_brx)//2, (rand_tly+rand_bry)//2
+            rand_tlx, rand_tly, rand_brx, rand_bry, _ = bbox1[-1]
+            # rand_tlx, rand_tly, rand_brx, rand_bry = random.choice(bbox1)  # label1에서 가져올 bbox
+            rand_cx, rand_cy = (rand_tlx+rand_brx)//2, (rand_tly+rand_bry)//2
 
-                label_tlx, label_tly, label_brx, label_bry = rand_cx-half_patch_l, rand_cy-half_patch_l, rand_cx+half_patch_l, rand_cy+half_patch_l
+            label_tlx, label_tly, label_brx, label_bry = rand_cx-half_patch_l, rand_cy-half_patch_l, rand_cx+half_patch_l, rand_cy+half_patch_l
 
-                # 박스를 패치의 크기로 만들어줌
-                if label_tlx < 0:
-                    label_tlx = 0
-                    label_brx = patch_l
+            # 박스를 패치의 크기로 만들어줌
+            if label_tlx < 0:
+                label_tlx = 0
+                label_brx = patch_l
 
-                if label_tly < 0:
-                    label_tly = 0
-                    label_bry = patch_l
+            if label_tly < 0:
+                label_tly = 0
+                label_bry = patch_l
 
-                if label_brx > h:
-                    label_brx = h
-                    label_tlx = h-patch_l
+            if label_brx > h:
+                label_brx = h
+                label_tlx = h-patch_l
 
-                if label_bry > w:
-                    label_bry = w
-                    label_tly = w-patch_l
+            if label_bry > w:
+                label_bry = w
+                label_tly = w-patch_l
 
-                # cutmix img
-                if tl_y <= w // 2:  # 패치가 왼쪽
-                    img2[tl_x:br_x, tl_y:br_y] = img1[tl_x:br_x, tl_y:br_y]
-                    img2[tl_x:br_x, w//2+tl_y:w//2+br_y] = img1[tl_x:br_x, w//2+tl_y:w//2+br_y]
+            # cutmix img
+            if tl_y <= w // 2:  # 패치가 왼쪽
+                img2[tl_x:br_x, tl_y:br_y] = img1[tl_x:br_x, tl_y:br_y]
+                img2[tl_x:br_x, w//2+tl_y:w//2+br_y] = img1[tl_x:br_x, w//2+tl_y:w//2+br_y]
+            else:
+                img2[tl_x:br_x, tl_y-w//2:br_y-w//2] = img1[tl_x:br_x, tl_y-w//2:br_y-w//2]
+                img2[tl_x:br_x, tl_y:br_y] = img1[tl_x:br_x, tl_y:br_y]
+
+            # cutmix label
+            if label_info == 'left':  # 왼쪽에 라벨 저장
+                if tl_y < w//2:
+                    label2[tl_x:br_x, tl_y: br_y] = label1[label_tlx:label_brx, label_tly:label_bry]
                 else:
-                    img2[tl_x:br_x, tl_y-w//2:br_y-w//2] = img1[tl_x:br_x, tl_y-w//2:br_y-w//2]
-                    img2[tl_x:br_x, tl_y:br_y] = img1[tl_x:br_x, tl_y:br_y]
-
-                # cutmix label
-                if label_info == 'left':  # 왼쪽에 라벨 저장
-                    if tl_y < w//2:
-                        label2[tl_x:br_x, tl_y: br_y] = label1[label_tlx:label_brx, label_tly:label_bry]
-                    else:
-                        label2[tl_x:br_x, tl_y-w//2: br_y-w//2] = label1[label_tlx:label_brx, label_tly:label_bry]
+                    label2[tl_x:br_x, tl_y-w//2: br_y-w//2] = label1[label_tlx:label_brx, label_tly:label_bry]
+            else:
+                if tl_y < w//2:
+                    label2[tl_x:br_x, tl_y+w//2: br_y+w//2] = label1[label_tlx:label_brx, label_tly:label_bry]
                 else:
-                    if tl_y < w//2:
-                        label2[tl_x:br_x, tl_y+w//2: br_y+w//2] = label1[label_tlx:label_brx, label_tly:label_bry]
-                    else:
-                        label2[tl_x:br_x, tl_y: br_y] = label1[label_tlx:label_brx, label_tly:label_bry]
+                    label2[tl_x:br_x, tl_y: br_y] = label1[label_tlx:label_brx, label_tly:label_bry]
 
-                # save
-                cv2.imwrite(os.path.join(save_path, 'x', filename), img2)
-                cv2.imwrite(os.path.join(save_path, 'y', filename), label2)
+            # save
+            cv2.imwrite(os.path.join(save_path, 'x', filename), img2)
+            cv2.imwrite(os.path.join(save_path, 'y', filename), label2)
 
-                # visualize
-                # f, ax = plt.subplots(3, 2, figsize=(15, 15))
-                #
-                # ax[0, 0].axis('off')
-                # ax[0, 1].axis('off')
-                # ax[1, 0].axis('off')
-                # ax[1, 1].axis('off')
-                # ax[2, 0].axis('off')
-                # ax[2, 1].axis('off')
-                #
-                # ax[0, 0].set_title('image1')
-                # ax[0, 1].set_title('label1')
-                # ax[1, 0].set_title('image2')
-                # ax[1, 1].set_title('label2')
-                # ax[2, 0].set_title('cutmix image')
-                # ax[2, 1].set_title('cutmix label')
-                #
-                # ax[0, 0].imshow(img1)
-                # ax[0, 1].imshow(label1)
-                # ax[1, 0].imshow(origin2)
-                # ax[1, 1].imshow(origin2_label)
-                # ax[2, 0].imshow(img2)
-                # ax[2, 1].imshow(label2)
-                # plt.show()
-                return
+            return
     return
-
-def check_num():
-    from glob import glob
-
-    x_path = '****/data/cutmix/x/*.png'
-    y_path = '****/data/cutmix/y/*.png'
-
-    x_paths = glob(x_path)
-    y_paths = glob(y_path)
-
-    answer = len(x_paths)
-    cnt = 0
-
-    for x, y in zip(x_paths, y_paths):
-        if os.path.basename(x) != os.path.basename(y):
-            print(f'filename {os.path.basename(x)}, {os.path.basename(y)}')
-        else:
-            cnt += 1
-
-    print(f'answer: {answer}, correct: {cnt}')
 
 
 if __name__ == '__main__':
     x1_paths = []
-    with open('****/cls1.csv', newline='') as f:  # cls 라벨 정보
+    with open(os.path.join(prj_dir, 'class1.csv'), newline='') as f:  # cls 라벨 정보
         reader = csv.reader(f)
         for r in reader:
-            x1_paths.append(os.path.join('****/data/train/x', r[0]))  # 원본 데이터 경로
+            x1_paths.append(os.path.join(prj_dir, '..', 'data','train','x', r[0]))  # 원본 데이터 경로
     y1_paths = list(map(lambda x: x.replace('x', 'y'), x1_paths))
 
     x2_paths = []
-    with open('****/cls2.csv', newline='') as f:
+    with open(os.path.join(prj_dir, 'class2.csv'), newline='') as f:
         reader = csv.reader(f)
         for r in reader:
-            x2_paths.append(os.path.join('****/data/train/x', r[0]))
+            x2_paths.append(os.path.join(prj_dir, '..', 'data','train','x', r[0]))
     y2_paths = list(map(lambda x: x.replace('x', 'y'), x2_paths))
 
     # over sampling
@@ -247,34 +200,33 @@ if __name__ == '__main__':
             diff += 1
             continue
 
-        # img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-        # img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
 
-        label1 = cv2.imread(y1_path, cv2.IMREAD_GRAYSCALE)
-        label2 = cv2.imread(y2_path, cv2.IMREAD_GRAYSCALE)
+        labels = []
+        labels.append(cv2.imread(y1_path, cv2.IMREAD_GRAYSCALE))
+        labels.append(cv2.imread(y2_path, cv2.IMREAD_GRAYSCALE))
 
         # shape 안맞을때 skip
-        if label1.shape != (754, 1508) or label2.shape != (754, 1508):
-            print(f'shape different! label1:{label1.shape}, label2:{label2.shape}')
+        if labels[0].shape != (754, 1508) or labels[1].shape != (754, 1508):
+            print(f'shape different! label1:{labels[0].shape}, label2:{labels[1].shape}')
             diff += 1
             continue
 
         # save 경로
-        save_path = f'C:/Users/dudtj/contest/qualify-test/data/cutmix'
-        # filename = f'y1_{ith}_{os.path.basename(y2_path)}'
-        filename = f'y2_{ith}_{os.path.basename(y2_path)}'
-        print(f'filename: {filename}')
+        save_path = os.path.join(prj_dir, '..', 'data', 'cut') 
+        os.makedirs(save_path, exist_ok=True)
+        os.makedirs(os.path.join(save_path, 'x'), exist_ok=True)
+        os.makedirs(os.path.join(save_path, 'y'), exist_ok=True)
 
         label_info = change_[c]
         c *= -1
 
-        # 1 class에 대해.. cutmix
-        # bbox = find_cls_bbox(1, label1)
-        # cutmix(img1, img2, bbox, label1, label2, label_info, save_path, filename)
-
-        # 2 class에 대해.. cutmix
-        bbox = find_cls_bbox(2, label2)
-        cutmix(img2, img1, bbox, label2, label1, label_info, save_path, filename)
-
+        for i in range(2):
+            bbox = find_cls_bbox(i+1, labels[i])
+            if i==0:
+                filename = f'y1_{ith}_{os.path.basename(y2_path)}'
+                cutmix(img1, img2, bbox, labels[0], labels[1], label_info, save_path, filename)
+            else:
+                filename = f'y2_{ith}_{os.path.basename(y2_path)}'
+                cutmix(img2, img1, bbox, labels[1], labels[0], label_info, save_path, filename)
 # shape 다른 개수 출력
 print(f'different shape num: {diff}')  # 5

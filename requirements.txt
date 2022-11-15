@@ -1,4 +1,5 @@
-torch
+torch==1.12.1
+torchvision==0.13.1
 transformers
 datasets
 pickle5
@@ -9,3 +10,4 @@ pandas
 evaluate
 pillow
 opencv-python
+matplotlib
