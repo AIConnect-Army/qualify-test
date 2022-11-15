@@ -2,11 +2,11 @@
 gpu_num: 1
 seed: 42
 debug: False
-verbose: False 
+verbose: False
 
 # Train / val
-val_size: 0.2
-train_folder : Swin-Augmented 
+val_size: 0.3
+train_folder: Swin-Augmented
 
 # Data Loader
 input_width: 480
@@ -16,23 +16,22 @@ num_workers: 8
 shuffle: True
 drop_last: False
 
-
 # Model
-architecture: Swin 
+architecture: Swin
 encoder: efficientnet-b0 #timm-regnety_016
 encoder_weight: imagenet
 depth: 5
 n_classes: 4
-activation: sigmoid 
+activation: sigmoid
 
 # Trainer
-n_epochs: 100
+n_epochs: 6
 batch_size: 32
-loss: 
+loss:
   name: MeanCCELoss # MeanCCELoss
   args:
     weight: [1, 1, 1, 1]
-metrics: 
+metrics:
   - miou
   - iou1
   - iou2

@@ -1,222 +1,142 @@
-"""Train
-"""
-from time import time
-import numpy as np
-import shutil, random, os, sys, torch
-from glob import glob
-from torch.utils.data import DataLoader
+import torch
+from torch import nn
+import datasets
+import glob, os, sys, pickle
 from sklearn.model_selection import train_test_split
-from multiprocessing import Manager
+from modules.utils import load_yaml
+from transformers import (
+    SegformerFeatureExtractor,
+    SegformerForSemanticSegmentation, 
+    TrainingArguments, 
+    Trainer
+)
+import numpy as np
+import evaluate
 
 prj_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(prj_dir)
+PRETRAINED = 'nvidia/segformer-b4-finetuned-cityscapes-1024-1024'
 
-from modules.utils import load_yaml, get_logger
-from modules.metrics import get_metric_function
-from modules.earlystoppers import EarlyStopper
-from modules.losses import get_loss_function
-from modules.optimizers import get_optimizer
-from modules.schedulers import get_scheduler
-from modules.scalers import get_image_scaler
-from modules.datasets import SegDataset
-from modules.recorders import Recorder
-from modules.trainer import Trainer
-from models.utils import get_model
-from preprocess.augmentation import DataAugmentation
 
-if __name__ == '__main__':
-    
-    # Load config
+# Feature Extractor for Segformer
+feature_extractor = SegformerFeatureExtractor.from_pretrained(PRETRAINED,reduce_labels=False)
+
+def train_transforms(example_batch):
+  images = [x for x in example_batch["image"]]
+  labels = [x for x in example_batch["label"]]
+  inputs = feature_extractor(images,labels,return_tensors="pt")
+  return inputs
+
+def val_transforms(example_batch):
+    images = [x for x in example_batch["image"]]
+    labels = [x for x in example_batch["label"]]
+    inputs = feature_extractor(images, labels,return_tensors="pt")
+    return inputs
+
+def compute_metrics(eval_pred, num_labels=4):
+    metric = evaluate.load("mean_iou")
+
+    with torch.no_grad():
+        logits, labels = eval_pred
+        logits_tensor = torch.from_numpy(logits)
+        logits_tensor = nn.functional.interpolate(
+            logits_tensor,
+            size=labels.shape[-2:],
+            mode="bilinear",
+            align_corners=False,
+        ).argmax(dim=1)
+
+        pred_labels = logits_tensor.detach().cpu().numpy()
+        metrics = metric.compute(
+            predictions=pred_labels,
+            references=labels,
+            num_labels=num_labels,
+            ignore_index=255,
+            reduce_labels=False,
+        )
+        for key, value in metrics.items():
+            if type(value) is np.ndarray:
+                metrics[key] = value.tolist()
+        return metrics
+
+if __name__ == "__main__":
     config_path = os.path.join(prj_dir, 'config', 'train.yaml')
     config = load_yaml(config_path)
-    
-    # Set train folder name : Model + Backbone
-    train_folder = config["train_folder"] 
 
-    # Set random seed, deterministic
-    torch.cuda.manual_seed(config['seed'])
-    torch.manual_seed(config['seed'])
-    np.random.seed(config['seed'])
-    random.seed(config['seed'])
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-    # Set device(GPU/CPU)
-
-    # delete below code if you on colab
-    # os.environ['CUDA_VISIBLE_DEVICES'] = str(config['gpu_num'])
-
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(config['gpu_num'])
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"DEVICE : {device}")
 
-    # Create train result directory and set logger
-    train_result_dir = os.path.join(prj_dir, 'results', 'train', train_folder)
-    os.makedirs(train_result_dir, exist_ok=True)
 
-    # Set logger
-    logging_level = 'debug' if config['verbose'] else 'info'
-    logger = get_logger(name='train',
-                        file_path=os.path.join(train_result_dir, 'train.log'),
-                        level=logging_level)
+    # Load dataset from pickle files
+    pickle_path = os.path.join(prj_dir, 'data', 'pickle', 'train.pkl')
+    if os.path.exists(pickle_path):
+        with open(pickle_path, 'rb') as f:
+            train_ds = pickle.load(f)
+        with open(pickle_path.replace('train.pkl', 'valid.pkl'), 'rb') as f:
+            val_ds = pickle.load(f)
 
+    else:
+        train_img_path = os.path.join(prj_dir, 'data', 'train', 'x', '*.png') 
+        train_img_paths = glob.glob(train_img_path)
 
-    # Set data directory
-    # train_dirs = os.path.join(prj_dir, 'data', 'train')
+        train_img_paths, val_img_paths = train_test_split(train_img_paths, test_size=config['val_size'], random_state=config['seed'], shuffle=True)
 
-    # For Test - sample data
-    train_dirs = os.path.join(prj_dir, 'data', 'sample_data')
+        train_img_paths += glob.glob(train_img_path.replace('train', 'up'))
+        train_img_paths += glob.glob(train_img_path.replace('train', 'cut'))
 
-    # Load data and create dataset for train 
-    # Load image scaler
-    train_img_paths = glob(os.path.join(train_dirs, 'x', '*.png'))
-    train_img_paths, val_img_paths = train_test_split(train_img_paths, test_size=config['val_size'], random_state=config['seed'], shuffle=True)
+        train_ds = datasets.Dataset.from_dict(
+            {"image": train_img_paths, "label": list(map(lambda x : x.replace('x', 'y'),train_img_paths))}, 
+            features=datasets.Features({"image": datasets.Image(), "label": datasets.Image()}),
+            split="train")
 
-    # data augmentation
-    aug = DataAugmentation(img_size=config['input_height'],
-                           with_random_hflip=True,
-                           with_random_vflip=False,
-                           with_random_rot=True,
-                           with_random_crop=False,
-                           with_scale_random_crop=True,
-                           with_random_blur=False,
-                           random_color_tf=True)
+        val_ds = datasets.Dataset.from_dict(
+            {"image": val_img_paths, "label": list(map(lambda x : x.replace('x', 'y'),val_img_paths))}, 
+            features=datasets.Features({"image": datasets.Image(), "label": datasets.Image()}),
+            split="val")
 
-    #img caching
-    manager = Manager()
-    train_cache = manager.dict()
-    valid_cache = manager.dict()
+        os.makedirs(os.path.join(prj_dir, 'data','pickle'), exist_ok=True)
 
-    train_dataset = SegDataset(paths=train_img_paths,
-                            input_size=[config['input_width'], config['input_height']],
-                            scaler=get_image_scaler(config['scaler']),
-                            cache=train_cache,
-                            transform=aug,
-                            logger=logger)
-    val_dataset = SegDataset(paths=val_img_paths,
-                            input_size=[config['input_width'], config['input_height']],
-                            scaler=get_image_scaler(config['scaler']),
-                            cache=valid_cache,
-                            logger=logger)
-    # Create data loader
-    train_dataloader = DataLoader(dataset=train_dataset,
-                                batch_size=config['batch_size'],
-                                num_workers=config['num_workers'], 
-                                pin_memory=True,
-                                shuffle=config['shuffle'],
-                                drop_last=config['drop_last'])
-                                
-    val_dataloader = DataLoader(dataset=val_dataset,
-                                batch_size=config['batch_size'],
-                                num_workers=config['num_workers'], 
-                                pin_memory=True,
-                                shuffle=False,
-                                drop_last=config['drop_last'])
+        with open(pickle_path, 'wb') as f:
+            pickle.dump(train_ds, f)
+        with open(pickle_path.replace('train', 'valid'), 'wb') as f:
+            pickle.dump(val_ds, f)
 
-    logger.info(f"Load dataset, train: {len(train_dataset)}, val: {len(val_dataset)}")
-    print(f"Load dataset, train: {len(train_dataset)}, val: {len(val_dataset)}")
-    
-    # Load model
-    model = get_model(model_str=config['architecture'])
-    model = model(classes=config['n_classes'],
-                encoder_name=config['encoder'],
-                encoder_weights=config['encoder_weight'],
-                activation=config['activation']).to(device)
-    logger.info(f"Load model architecture: {config['architecture']}")
+        print(f"PICKLE SAVED")
 
-    # Set optimizer
-    optimizer = get_optimizer(optimizer_str=config['optimizer']['name'])
-    optimizer = optimizer(model.parameters(), **config['optimizer']['args'])
-    
-    # Set Scheduler
-    scheduler = get_scheduler(scheduler_str=config['scheduler']['name'])
-    scheduler = scheduler(optimizer=optimizer, **config['scheduler']['args'])
+    print("=====DATASET LOADED=====")
+    print(f"TRAIN : {train_ds}, VAL : {val_ds}")
 
-    # Set loss function
-    loss_func = get_loss_function(loss_function_str=config['loss']['name'])
-    loss_func = loss_func(**config['loss']['args'])
+    train_ds.set_transform(train_transforms)
+    val_ds.set_transform(val_transforms)
 
-    # Set metric
-    metric_funcs = {metric_name:get_metric_function(metric_name) for metric_name in config['metrics']}
-    logger.info(f"Load optimizer:{config['optimizer']['name']}, scheduler: {config['scheduler']['name']}, loss: {config['loss']['name']}, metric: {config['metrics']}")
+    model = SegformerForSemanticSegmentation.from_pretrained(
+        PRETRAINED,num_labels=config['n_classes'],ignore_mismatched_sizes=True).to(device)
 
-    # Set trainer
-    trainer = Trainer(model=model,
-                    optimizer=optimizer,
-                    scheduler=scheduler,
-                    loss_func=loss_func,
-                    metric_funcs=metric_funcs,
-                    device=device,
-                    logger=logger)
-    logger.info(f"Load trainer")
+    output_path = os.path.join(prj_dir, 'results', 'train', config['train_folder'])
+    training_args = TrainingArguments(
+        output_dir = output_path,
+        learning_rate=0.00005,
+        num_train_epochs=config['n_epochs'],
+        per_device_train_batch_size=4,
+        per_device_eval_batch_size=4,
+        save_total_limit=2,
+        evaluation_strategy="steps",
+        save_strategy="steps",
+        save_steps=1500,
+        eval_steps=1500,
+        load_best_model_at_end = True,
+        logging_steps=3000,
+        eval_accumulation_steps=10,
+        remove_unused_columns=False
+    )
 
-    # Set early stopper
-    early_stopper = EarlyStopper(patience=config['earlystopping_patience'],
-                                logger=logger)
-    # Set recorder
-    recorder = Recorder(record_dir=train_result_dir,
-                        model=model,
-                        optimizer=optimizer,
-                        scheduler=scheduler,
-                        logger=logger)
-    logger.info("Load early stopper, recorder")
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_ds,
+        eval_dataset=val_ds,
+        compute_metrics=compute_metrics,
+    )
 
-    # Recorder - save train config
-    shutil.copy(config_path, os.path.join(recorder.record_dir, 'train.yaml'))
-
-    # Train
-    print("START TRAINING")
-    logger.info("START TRAINING")
-    for epoch_id in range(config['n_epochs']):
-        
-        # Initiate result row
-        row = dict()
-        row['epoch_id'] = epoch_id
-        row['train_folder'] = train_folder
-        row['lr'] = trainer.scheduler.get_last_lr()
-
-        # Train
-        print(f"Epoch {epoch_id}/{config['n_epochs']} Train..")
-        logger.info(f"Epoch {epoch_id}/{config['n_epochs']} Train..")
-        tic = time()
-        trainer.train(dataloader=train_dataloader, epoch_index=epoch_id)
-        toc = time()
-        # Write tarin result to result row
-        row['train_loss'] = trainer.loss  # Loss
-        for metric_name, metric_score in trainer.scores.items():
-            row[f'train_{metric_name}'] = metric_score
-
-        row['train_elapsed_time'] = round(toc-tic, 1)
-        # Clear
-        trainer.clear_history()
-
-        # Validation
-        print(f"Epoch {epoch_id}/{config['n_epochs']} Validation..")
-        logger.info(f"Epoch {epoch_id}/{config['n_epochs']} Validation..")
-        tic = time()
-        trainer.validate(dataloader=val_dataloader, epoch_index=epoch_id)
-        toc = time()
-        row['val_loss'] = trainer.loss
-        # row[f"val_{config['metric']}"] = trainer.score
-        for metric_name, metric_score in trainer.scores.items():
-            row[f'val_{metric_name}'] = metric_score
-        row['val_elapsed_time'] = round(toc-tic, 1)
-        trainer.clear_history()
-
-        # Performance record - row
-        recorder.add_row(row)
-        
-        # Performance record - plot
-        recorder.save_plot(config['plot'])
-
-        # Check early stopping
-        early_stopper.check_early_stopping(row[config['earlystopping_target']])
-        if early_stopper.patience_counter == 0:
-            recorder.save_weight(epoch=epoch_id)
-            
-        if early_stopper.stop:
-            print(f"Epoch {epoch_id}/{config['n_epochs']}, Stopped counter {early_stopper.patience_counter}/{config['earlystopping_patience']}")
-            logger.info(f"Epoch {epoch_id}/{config['n_epochs']}, Stopped counter {early_stopper.patience_counter}/{config['earlystopping_patience']}")
-            break
-
-    print("END TRAINING")
-    logger.info("END TRAINING")
+    trainer.train()
