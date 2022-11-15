@@ -8,7 +8,6 @@
 data/
 **/.DS_Store
 **/ngrok*
-results/
 
 **pkl
 .ipynb_checkpoints
