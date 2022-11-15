@@ -22,27 +22,25 @@ sh2298, jjuun, taemin6697, 임리둥절
 
  - **전처리**
   
-  upsampling : 
-  `./preprocess/augmentation.py` 
+    upsampling :  `./preprocess/augmentation.py` 
   
-  cutmix :   
-  `./preprocess/cutmix.py` 
+    cutmix :  `./preprocess/cutmix.py` 
   
-  최종 사용 데이터 : 
-  `./data/train # data + upsamping + cutmix  `
+    최종 사용 데이터 :  `./data/train # data + upsamping + cutmix  `
+  
   
  - **모델  
-  nvidia/segformer-b4-finetuned-cityscapes-1024-1024**로 사용하여 학습 및 테스트함.  
+   nvidia/segformer-b4-finetuned-cityscapes-1024-1024**로 사용하여 학습 및 테스트함.  
   
-  parameter : iter 체크한거 첨부하면 좋을 듯. 수정 comment line으로 기재
+   parameter : iter 체크한거 첨부하면 좋을 듯. 수정 comment line으로 기재
   
-  tuning : (batch, lr, 등..)  
+    tuning : (batch, lr, 등..)  
   
-  최종 사용 모델 : segformer-b4-  
- ( b4 18000iter lr 0.00005   )+ (...)
+   최종 사용 모델 : segformer-b4-  ( b4 18000iter lr 0.00005   )+ (...)
+  
   
  - **predict**
-  `./predict.py` 실행.
+   `./predict.py` 실행.
 
   
  - **최종 제출 파일 : submitted.zip**  
