@@ -21,6 +21,7 @@ sh2298, jjuun, taemin6697, 임리둥절
 ## 코드 구조 설명  *
 
  - **전처리**
+  
   upsampling : 
   `./preprocess/augmentation.py` 
   
