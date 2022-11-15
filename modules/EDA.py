@@ -17,7 +17,7 @@ train_dirs = os.path.join(prj_dir, 'data', 'train')
 train_img_paths = glob(os.path.join(train_dirs, 'y', '*.png'))
 
 
-config_path = os.path.join(prj_dir, 'config', 'train.yaml')
+config_path = os.path.join(prj_dir, '../config', 'train.yaml')
 config = load_yaml(config_path)
 
 class_info = {i: 0 for i in range(4)}

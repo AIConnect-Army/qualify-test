@@ -1,7 +1,6 @@
 import torch
-import segmentation_models_pytorch as smp
 from segmentation_models_pytorch.encoders._base import EncoderMixin
-from models.swin_transformer import SwinTransformer
+from models.swin.swin_transformer import SwinTransformer
 from typing import List
 
 class SwinEncoder(torch.nn.Module, EncoderMixin):

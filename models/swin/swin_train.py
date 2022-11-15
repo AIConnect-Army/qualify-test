@@ -21,13 +21,13 @@ from modules.scalers import get_image_scaler
 from modules.datasets import SegDataset
 from modules.recorders import Recorder
 from modules.trainer import Trainer
-from models.utils import get_model
-from preprocess.augmentation import DataAugmentation
+from models.utils import get_swin_model
+# from modules.augmentation import DataAugmentation
 
 if __name__ == '__main__':
     
     # Load config
-    config_path = os.path.join(prj_dir, 'config', 'train.yaml')
+    config_path = os.path.join(prj_dir, '../../config', 'train.yaml')
     config = load_yaml(config_path)
     
     # Set train folder name : Model + Backbone
@@ -61,42 +61,41 @@ if __name__ == '__main__':
 
 
     # Set data directory
-    # train_dirs = os.path.join(prj_dir, 'data', 'train')
+    train_dirs = os.path.join(prj_dir, 'data', 'train')
 
     # For Test - sample data
-    train_dirs = os.path.join(prj_dir, 'data', 'sample_data')
+    # train_dirs = os.path.join(prj_dir, 'data', 'sample_data')
 
     # Load data and create dataset for train 
     # Load image scaler
     train_img_paths = glob(os.path.join(train_dirs, 'x', '*.png'))
     train_img_paths, val_img_paths = train_test_split(train_img_paths, test_size=config['val_size'], random_state=config['seed'], shuffle=True)
 
-    # data augmentation
-    aug = DataAugmentation(img_size=config['input_height'],
-                           with_random_hflip=True,
-                           with_random_vflip=False,
-                           with_random_rot=True,
-                           with_random_crop=False,
-                           with_scale_random_crop=True,
-                           with_random_blur=False,
-                           random_color_tf=True)
-
     #img caching
     manager = Manager()
     train_cache = manager.dict()
     valid_cache = manager.dict()
 
+    # upsampling data
+    upsampling_dir = os.path.join(prj_dir, 'data', 'up')
+    upsampling_dir_x = os.path.join(upsampling_dir, 'x')
+    
+    train_img_paths += glob(os.path.join(upsampling_dir_x, '*.png'))
     train_dataset = SegDataset(paths=train_img_paths,
                             input_size=[config['input_width'], config['input_height']],
                             scaler=get_image_scaler(config['scaler']),
                             cache=train_cache,
-                            transform=aug,
+                            # upsampling=config['upsampling']['flag'],
+                            # transform=aug,
                             logger=logger)
     val_dataset = SegDataset(paths=val_img_paths,
                             input_size=[config['input_width'], config['input_height']],
                             scaler=get_image_scaler(config['scaler']),
                             cache=valid_cache,
+                            # upsampling=config['upsampling']['flag'],
+                            # transform=None,
                             logger=logger)
+
     # Create data loader
     train_dataloader = DataLoader(dataset=train_dataset,
                                 batch_size=config['batch_size'],
@@ -114,13 +113,8 @@ if __name__ == '__main__':
 
     logger.info(f"Load dataset, train: {len(train_dataset)}, val: {len(val_dataset)}")
     print(f"Load dataset, train: {len(train_dataset)}, val: {len(val_dataset)}")
-    
     # Load model
-    model = get_model(model_str=config['architecture'])
-    model = model(classes=config['n_classes'],
-                encoder_name=config['encoder'],
-                encoder_weights=config['encoder_weight'],
-                activation=config['activation']).to(device)
+    model = get_swin_model(config=config).to(device)
     logger.info(f"Load model architecture: {config['architecture']}")
 
     # Set optimizer
