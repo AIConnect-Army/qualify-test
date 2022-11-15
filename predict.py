@@ -44,7 +44,6 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
 
     # Set device(GPU/CPU)
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(config['gpu_num'])
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Create train result directory and set logger

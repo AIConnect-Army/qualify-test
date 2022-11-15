@@ -63,7 +63,6 @@ if __name__ == "__main__":
     config_path = os.path.join(prj_dir, 'config', 'train.yaml')
     config = load_yaml(config_path)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(config['gpu_num'])
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"DEVICE : {device}")
 
