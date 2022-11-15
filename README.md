@@ -23,15 +23,20 @@ sh2298, jjuun, taemin6697, 임리둥절
  - **전처리**
   upsampling : 
   `./preprocess/augmentation.py` 
+  
   cutmix :   
   `./preprocess/cutmix.py` 
+  
   최종 사용 데이터 : 
   `./data/train # data + upsamping + cutmix  `
   
  - **모델  
   nvidia/segformer-b4-finetuned-cityscapes-1024-1024**로 사용하여 학습 및 테스트함.  
+  
   parameter : iter 체크한거 첨부하면 좋을 듯. 수정 comment line으로 기재
+  
   tuning : (batch, lr, 등..)  
+  
   최종 사용 모델 : segformer-b4-  
  ( b4 18000iter lr 0.00005   )+ (...)
   
