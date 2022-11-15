@@ -2,7 +2,7 @@
 gpu_num: 0
 
 # Model
-train_folder : UAnet-eff_b0
+train_folder: Final-Submission
 
 # Data
 batch_size: 16

@@ -81,9 +81,8 @@ if __name__ == '__main__':
     logger.info(f"Load test dataset: {test_dataset}")
 
     # Load architecture
-    check_point_path = glob.glob(os.path.join(prj_dir, 'results', 'train', config['train_folder']))
-    check_point_path = check_point_path[-1]
-
+    check_point_path = glob(os.path.join(prj_dir, 'results', 'train', config['train_folder'], 'checkpoint-*'))
+    check_point_path = sorted(check_point_path)[0]
 
     model = SegformerForSemanticSegmentation.from_pretrained(check_point_path).to(device)
 

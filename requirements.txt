@@ -1,0 +1,11 @@
+torch
+transformers
+datasets
+pickle5
+pyyaml
+scikit-learn
+numpy
+pandas
+evaluate
+pillow
+opencv-python
